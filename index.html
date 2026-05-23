@@ -97,7 +97,7 @@
 
   // セキュリティ（https/http）に合わせてWebSocketのプロトコルを自動判定
   const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-  const SERVER_URL = 'ws://localhost:3000';
+  const SERVER_URL = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host;
 
   function switchView(viewId) {
       document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
@@ -255,6 +255,8 @@
       if (roomParam) {
           showPlayerSetup();
           document.getElementById('input-room-id').value = roomParam;
+        }
+    
       }
   };
 </script>
