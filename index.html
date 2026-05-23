@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lumina Quiz - Unified Edition</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; font-family:'Poppins',sans-serif; background:#020617; color:#fff; display:flex; justify-content:center; align-items:center; min-height:100vh; overflow-x:hidden; }
+  .container { width:100%; max-width:600px; padding:20px; box-sizing:border-box; }
+  .card { background:rgba(30,41,59,0.4); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.05); padding:30px; border-radius:24px; box-shadow:0 20px 40px rgba(0,0,0,0.5); text-align:center; }
+  h1 { font-size:32px; font-weight:700; color:#3b82f6; margin-top:0; margin-bottom:10px; letter-spacing:1px; }
+  h2 { font-size:24px; color:#f8fafc; margin-bottom:20px; }
+  .subtitle { color:#64748b; font-size:14px; margin-bottom:30px; }
+  .btn { display:block; width:100%; background:#3b82f6; color:#fff; border:none; padding:15px; font-size:18px; font-weight:600; border-radius:12px; cursor:pointer; transition:0.2s; text-align:center; box-sizing:border-box; margin-bottom:15px; }
+  .btn:hover { background:#2563eb; transform:translateY(-2px); }
+  .btn-secondary { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }
+  .btn-secondary:hover { background:rgba(255,255,255,0.1); }
+  .btn-reset { background:#ef4444; }
+  .btn-reset:hover { background:#dc2626; }
+  .input-field { width:100%; padding:14px; background:#1e293b; border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:#fff; font-size:16px; margin-bottom:15px; box-sizing:border-box; text-align:center; }
+  .input-field:focus { border-color:#3b82f6; outline:none; }
+  
+  /* エリアごとの表示制御 */
+  .view-section { display:none; }
+  .view-active { display:block; }
+  
+  /* 主催者ダッシュボード */
+  .room-badge { background:#10b981; font-size:28px; padding:6px 20px; border-radius:12px; color:#fff; font-weight:700; display:inline-block; margin-bottom:20px; letter-spacing:2px; }
+  .log-container { background:rgba(15,23,42,0.6); border-radius:16px; padding:15px; max-height:300px; overflow-y:auto; margin-bottom:20px; text-align:left; }
+  .log-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); font-size:18px; }
+  .log-item:first-child { background:linear-gradient(90deg, rgba(59,130,246,0.2), transparent); border-left:4px solid #3b82f6; font-weight:600; }
+  .qr-box { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:15px; margin-bottom:20px; display:inline-block; }
+  .qr-box img { border:4px solid #fff; border-radius:8px; }
+
+  /* 回答者用の巨大ボタン */
+  .buzzer-btn { width:220px; height:220px; background:radial-gradient(circle, #ff4757, #b31020); border:none; border-radius:50%; font-size:32px; font-weight:700; color:#fff; cursor:pointer; box-shadow:0 12px 0 #8a0c18, 0 20px 30px rgba(239,68,68,0.4); transition:0.05s; margin:20px auto; display:block; }
+  .buzzer-btn:active { transform:translateY(8px); box-shadow:0 4px 0 #8a0c18, 0 10px 15px rgba(239,68,68,0.4); }
+  .buzzer-btn:disabled { background:#334155; box-shadow:none; cursor:not-allowed; transform:translateY(12px); color:#64748b; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h1>LUMINA QUIZ</h1>
+    <p class="subtitle">Master Delivery Edition</p>
+
+    <div id="view-menu" class="view-section view-active">
+      <button class="btn" onclick="showHostSetup()">🚀 主催者として部屋を作る</button>
+      <button class="btn btn-secondary" onclick="showPlayerSetup()">📱 回答者として参加する</button>
+    </div>
+
+    <div id="view-player-setup" class="view-section">
+      <h2>プレイヤーエントリー</h2>
+      <input type="number" id="input-room-id" class="input-field" placeholder="4桁の部屋番号を入力">
+      <input type="text" id="input-player-name" class="input-field" placeholder="あなたの名前（ニックネーム）">
+      <button class="btn" onclick="joinRoomAsPlayer()">参 加 す る</button>
+      <button class="btn btn-secondary" onclick="goBackMenu()">戻る</button>
+    </div>
+
+    <div id="view-host-dash" class="view-section">
+      <h2>主催者ダッシュボード</h2>
+      <div>部屋番号</div>
+      <div id="host-room-id" class="room-badge">----</div>
+      
+      <div class="qr-box">
+        <div id="qrcode"></div>
+        <p style="margin:5px 0 0 0; font-size:12px; color:#94a3b8;">スマホでスキャンして参戦！</p>
+      </div>
+
+      <div class="log-container" id="host-log-list">
+        <div style="color:#64748b; text-align:center; padding-top:20px;">参加者の早押しを待っています...</div>
+      </div>
+      <button class="btn btn-reset" onclick="resetBuzzer()">全員のリセット</button>
+      <button class="btn btn-secondary" onclick="location.reload()">トップに戻る</button>
+    </div>
+
+    <div id="view-player-dash" class="view-section">
+      <h2 style="color:#10b981;">接続完了！</h2>
+      <p id="player-dash-info" style="font-size:16px; color:#94a3b8; margin-bottom:5px;"></p>
+      <p id="player-dash-name" style="font-size:24px; font-weight:700; margin-top:0;"></p>
+      
+      <button class="buzzer-btn" id="buzz-btn" onclick="pressBuzzer()">PUSH</button>
+      <div id="player-status-text" style="font-size:16px; color:#64748b; margin-top:10px;">ボタンを押せます</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let ws;
+  let myRoomId = "";
+  let myName = "";
+  let isHost = false;
+  let audioCtx = null;
+
+  // セキュリティ（https/http）に合わせてWebSocketのプロトコルを自動判定
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+  const SERVER_URL = 'ws://localhost:3000';
+
+  function switchView(viewId) {
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('view-active'));
+      document.getElementById(viewId).classList.add('view-active');
+  }
+
+  function goBackMenu() { switchView('view-menu'); }
+
+  // サーバーに接続する
+  function connectServer(callback) {
+      ws = new WebSocket(SERVER_URL);
+      ws.onopen = () => { if(callback) callback(); };
+      
+      ws.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+
+          // 【主催者向け】部屋が新しく作成されたとき
+          if (msg.type === 'room_created') {
+              myRoomId = msg.roomId;
+              document.getElementById('host-room-id').innerText = myRoomId;
+              
+              // 部屋番号入りのQRコードを生成して表示
+              const qrcodeDiv = document.getElementById('qrcode');
+              qrcodeDiv.innerHTML = "";
+              const qrImg = document.createElement('img');
+              // パラメータを仕込んで自動入力できるようにする
+              const joinUrl = `${window.location.origin}${window.location.pathname}?room=${myRoomId}`;
+              qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(joinUrl)}`;
+              qrcodeDiv.appendChild(qrImg);
+              
+              switchView('view-host-dash');
+          }
+
+          // 【共通】早押しログの更新
+          if (msg.type === 'init' || msg.type === 'update') {
+              // 自分の部屋のデータのみ処理する
+              if (msg.roomId && msg.roomId !== myRoomId) return;
+
+              if (isHost) {
+                  updateHostLog(msg.data);
+                  if (msg.sound) playSound();
+              } else {
+                  // 回答者側のボタン制御
+                  if (msg.data.length === 0) {
+                      document.getElementById('buzz-btn').disabled = false;
+                      document.getElementById('player-status-text').innerText = "ボタンを押せます！";
+                      document.getElementById('player-status-text').style.color = "#10b981";
+                  } else {
+                      // 誰かがすでに押している場合、自分がその中にいるか確認
+                      const amIFirst = msg.data[0].name === myName;
+                      if (msg.data.some(p => p.name === myName)) {
+                          document.getElementById('buzz-btn').disabled = true;
+                          document.getElementById('player-status-text').innerText = amIFirst ? "あなたが1位です！🎉" : "タッチの差でした！";
+                          document.getElementById('player-status-text').style.color = amIFirst ? "#3b82f6" : "#ef4444";
+                      } else {
+                          // 自分は押してないが他の誰かが押した
+                          document.getElementById('buzz-btn').disabled = true;
+                          document.getElementById('player-status-text').innerText = `${msg.data[0].name}名が解答中...`;
+                          document.getElementById('player-status-text').style.color = "#64748b";
+                      }
+                  }
+              }
+          }
+
+          // 【回答者向け】エラー発生時
+          if (msg.type === 'error') {
+              alert(msg.message);
+              location.reload();
+          }
+      };
+  }
+
+  // 主催者：部屋を新規作成する
+  function showHostSetup() {
+      isHost = true;
+      connectServer(() => {
+          ws.send(JSON.stringify({ type: 'create_room' }));
+      });
+  }
+
+  // 回答者：入力画面に進む
+  function showPlayerSetup() {
+      isHost = false;
+      switchView('view-player-setup');
+  }
+
+  // 回答者：部屋へ実際に参加する
+  function joinRoomAsPlayer() {
+      const roomIdInput = document.getElementById('input-room-id').value.trim();
+      const nameInput = document.getElementById('input-player-name').value.trim();
+
+      if (!roomIdInput || !nameInput) {
+          alert("部屋番号と名前をどっちも入力してね！");
+          return;
+      }
+
+      myRoomId = roomIdInput;
+      myName = nameInput;
+
+      document.getElementById('player-dash-info').innerText = `ROOM ID : ${myRoomId}`;
+      document.getElementById('player-dash-name').innerText = myName;
+
+      connectServer(() => {
+          ws.send(JSON.stringify({ type: 'join_room', roomId: myRoomId, name: myName }));
+          switchView('view-player-dash');
+      });
+  }
+
+  // 主催者：リセットボタン
+  function resetBuzzer() {
+      if (ws) ws.send(JSON.stringify({ type: 'reset' }));
+  }
+
+  // 回答者：早押しボタン
+  function pressBuzzer() {
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}.${String(now.getMilliseconds()).padStart(3,'0')}`;
+      document.getElementById('buzz-btn').disabled = true;
+      ws.send(JSON.stringify({ type: 'press', name: myName, time: timeStr }));
+  }
+
+  // 主催者用のログ描画
+  function updateHostLog(players) {
+      const container = document.getElementById('host-log-list');
+      if (players.length === 0) {
+          container.innerHTML = '<div style="color:#64748b; text-align:center; padding-top:20px;">参加者の早押しを待っています...</div>';
+          return;
+      }
+      container.innerHTML = players.map((p, i) => `
+          <div class="log-item">
+            <span><strong>${i+1}位 : ${p.name}</strong></span>
+            <span style="color:#64748b;">[${p.time}]</span>
+          </div>
+      `).join('');
+  }
+
+  // 音を鳴らす
+  function playSound() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+      osc.frequency.setValueAtTime(1200, audioCtx.currentTime + 0.08); 
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+  }
+
+  // 便利機能：URLに「?room=1234」がついていたら自動で部屋番号をセットする
+  window.onload = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+          showPlayerSetup();
+          document.getElementById('input-room-id').value = roomParam;
+      }
+  };
+</script>
+</body>
+</html>
